@@ -9,7 +9,7 @@ import pings
 
 from bot import DiscordBot
 from logging_formatter import setup_logger
-from spam_filter import check_spam, SpamType
+from spam_filter import check_spam, SpamType, is_ping
 from user_actions import timeout_user
 
 logger: Logger
@@ -50,7 +50,10 @@ async def on_message(message: discord.Message):
 
     spam_type = check_spam(message)
 
+    already_got_yelled_at = False
+
     if spam_type != SpamType.NONE:
+        already_got_yelled_at = True
         if spam_type == SpamType.SMALL:
             await message.reply("Klidni se kurva nebo bude kick.", silent=True, delete_after=20)
         else:
@@ -62,24 +65,30 @@ async def on_message(message: discord.Message):
     channel = message.channel
     c_name = channel.name
 
-    if c_name in channels.channel_announcements and len(message.mentions) != 0:
+    if c_name in channels.channel_announcements and is_ping(message):
         await message.delete()
-        await channel.send(f"Si děláš prdel? Pingovat v oznamovací místnosti je fakt sračka! "
-                                   f"{message.author.mention}", silent=True, delete_after=20)
+        if not already_got_yelled_at:
+            await channel.send(f"Si děláš prdel? Pingovat v oznamovací místnosti je fakt sračka! "
+                               f"{message.author.mention}", silent=True, delete_after=20)
+
         return
 
-    if c_name in channels.channel_warning_ping and len(message.mentions) != 0:
-        await message.reply("Pingují jen otravní kokoti, pokud chceš hrát a seš takovej krypl, "
-                           "že nevíš co znamenají jaké role, tak použij \"/popis_her\".", delete_after=20)
-    elif c_name in channels.channel_no_ping and len(message.mentions) != 0:
+    if c_name in channels.channel_warning_ping and is_ping(message):
+        if not already_got_yelled_at:
+            await message.reply("Pingují jen otravní kokoti, pokud chceš hrát a seš takovej krypl, "
+                               "že nevíš co znamenají jaké role, tak použij \"/popis_her\".", delete_after=20)
+    elif c_name in channels.channel_no_ping and is_ping(message):
         await message.delete()
-        await channel.send(f"Zde je pingování zakázáno! {message.author.mention}", silent=True, delete_after=20)
+        if not already_got_yelled_at:
+            await channel.send(f"Zde je pingování zakázáno! {message.author.mention}", silent=True, delete_after=20)
+
         return
 
     if c_name in channels.channel_url_only and not "http" in message.content:
         await message.delete()
-        await channel.send(f"Zde je povoleno posílat pouze odkazy! {message.author.mention}",
-                           silent=True, delete_after=20)
+        if not already_got_yelled_at:
+            await channel.send(f"Zde je povoleno posílat pouze odkazy! {message.author.mention}",
+                                silent=True, delete_after=20)
         return
 
 bot.run(os.getenv("TOKEN"))

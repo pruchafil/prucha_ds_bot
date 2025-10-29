@@ -27,7 +27,7 @@ def ping(user_id: int):
 
     history = ping_message_history.get(user_id)
     if history is None:
-        history = deque(maxlen=3)
+        history = deque(maxlen=4)
 
     if len(history) == history.maxlen:
         history[-1] = now
@@ -40,8 +40,10 @@ def ping(user_id: int):
     ping_message_history[user_id] = history
 
     if len(history) == 2:
-        return SpamType.REPEATED_PING
+        return SpamType.SMALL
     if len(history) == 3:
+        return SpamType.REPEATED_PING
+    if len(history) == 4:
         return SpamType.SABOTEUR
 
     return SpamType.NONE
@@ -91,7 +93,10 @@ def non_ping(user_id: int):
 def check_spam(message: discord.Message):
     user_id = message.author.id
 
-    if len(message.mentions) == 0:
-        return non_ping(user_id)
-    else:
+    if is_ping(message):
         return ping(user_id)
+    else:
+        return non_ping(user_id)
+
+def is_ping(message: discord.Message):
+    return len(message.raw_mentions) != 0
