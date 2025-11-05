@@ -1,5 +1,4 @@
 from collections import deque
-from sys import maxsize
 
 import discord
 import time
@@ -99,4 +98,4 @@ def check_spam(message: discord.Message):
         return non_ping(user_id)
 
 def is_ping(message: discord.Message):
-    return len(message.raw_mentions) != 0
+    return len(message.mentions) != 0 and message.reference is None
